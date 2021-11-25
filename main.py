@@ -1,123 +1,85 @@
+import os
+
 import numpy as np
 import pandas as pd
 from math import erfc, sqrt
+from scipy import stats
+import statsmodels.api as sm
 
-def rouwenhorst(n, ybar, sigma, rho):
-    r"""
-    Takes as inputs n, p, q, psi. It will then construct a markov chain
-    that estimates an AR(1) process of:
-    :math:`y_t = \bar{y} + \rho y_{t-1} + \varepsilon_t`
-    where :math:`\varepsilon_t` is i.i.d. normal of mean 0, std dev of sigma
-    The Rouwenhorst approximation uses the following recursive defintion
-    for approximating a distribution:
-    .. math::
-        \theta_2 =
-        \begin{bmatrix}
-        p     &  1 - p \\
-        1 - q &  q     \\
-        \end{bmatrix}
-    .. math::
-        \theta_{n+1} =
-        p
-        \begin{bmatrix}
-        \theta_n & 0   \\
-        0        & 0   \\
-        \end{bmatrix}
-        + (1 - p)
-        \begin{bmatrix}
-        0  & \theta_n  \\
-        0  &  0        \\
-        \end{bmatrix}
-        + q
-        \begin{bmatrix}
-        0        & 0   \\
-        \theta_n & 0   \\
-        \end{bmatrix}
-        + (1 - q)
-        \begin{bmatrix}
-        0  &  0        \\
-        0  & \theta_n  \\
-        \end{bmatrix}
-    Parameters
-    ----------
-    n : int
-        The number of points to approximate the distribution
-    ybar : float
-        The value :math:`\bar{y}` in the process.  Note that the mean of this
-        AR(1) process, :math:`y`, is simply :math:`\bar{y}/(1 - \rho)`
-    sigma : float
-        The value of the standard deviation of the :math:`\varepsilon` process
-    rho : float
-        By default this will be 0, but if you are approximating an AR(1)
-        process then this is the autocorrelation across periods
-    Returns
-    -------
-    mc : MarkovChain
-        An instance of the MarkovChain class that stores the transition
-        matrix and state values returned by the discretization method
-    """
+from utils import rouwenhorst
 
-    # Get the standard deviation of y
-    y_sd = sqrt(sigma**2 / (1 - rho**2))
+pd.set_option('display.max_columns', 500)
 
-    # Given the moments of our process we can find the right values
-    # for p, q, psi because there are analytical solutions as shown in
-    # Gianluca Violante's notes on computational methods
-    p = (1 + rho) / 2
-    q = p
-    psi = y_sd * np.sqrt(n - 1)
+def get_data_growth_lags(path):
+    data = pd.read_excel(path, index_col="Year")
 
-    # Find the states
-    ubar = psi
-    lbar = -ubar
+    growth = data['Growth']
+    growth_lag1 = growth.shift(1).dropna()
+    growth = growth.iloc[1:]
 
-    bar = np.linspace(lbar, ubar, n)
+    return data, growth, growth_lag1
 
-    def row_build_mat(n, p, q):
-        """
-        This method uses the values of p and q to build the transition
-        matrix for the rouwenhorst method
-        """
+def fit_ar(x, x_lagged, summary=False):
+    X = sm.add_constant(x_lagged)
+    model = sm.OLS(x, X)
+    res = model.fit()
 
-        if n == 2:
-            theta = np.array([[p, 1 - p], [1 - q, q]])
+    const, rho = res.params  # Const + AR(1) param
+    sigma = np.sqrt(res.scale)
 
-        elif n > 2:
-            p1 = np.zeros((n, n))
-            p2 = np.zeros((n, n))
-            p3 = np.zeros((n, n))
-            p4 = np.zeros((n, n))
+    if summary: print(res.summary())
 
-            new_mat = row_build_mat(n - 1, p, q)
+    return const, rho, sigma
 
-            p1[:n - 1, :n - 1] = p * new_mat
-            p2[:n - 1, 1:] = (1 - p) * new_mat
-            p3[1:, :-1] = (1 - q) * new_mat
-            p4[1:, 1:] = q * new_mat
+def get_uncond_moments_ar(const, rho, sigma):
+    ar_mean = const / (1 - rho) + 1
+    ar_std = np.sqrt(sigma ** 2 / (1 - rho ** 2))
+    ar_rho = rho  # rho * ar_std**2
 
-            theta = p1 + p2 + p3 + p4
-            theta[1:n - 1, :] = theta[1:n - 1, :] / 2
+    return ar_mean, ar_rho, ar_std
 
-        else:
-            raise ValueError("The number of states must be positive " +
-                             "and greater than or equal to 2")
+def mc_params(Z, P):
+    # Compute unconditional probabilities (ergodic distribution):
+    eig_val, eig_vec = np.linalg.eig(P.T)
+    eig_vec = eig_vec[:, np.argmax(eig_val)]
+    pi_bar = eig_vec / eig_vec.sum()
 
-        return theta
+    mean = pi_bar @ Z
+    std = np.sqrt(pi_bar @ Z ** 2 - (pi_bar @ Z) ** 2)
+    rho = np.trace(P) - 1
 
-    theta = row_build_mat(n, p, q)
-
-    bar += ybar / (1 - rho)
-
-    return theta, bar
-
+    return pi_bar, mean, rho, std
 
 
 
 if __name__ == '__main__':
-    mu = 0.0183
-    sigma = 0.0357
-    rho = -0.14
+    path = "./PCE growth data.xlsx"
+    data, growth, growth_lag1 = get_data_growth_lags(path)
 
-    P, z = rouwenhorst(n=2, ybar=mu, sigma=sigma, rho=rho)
+    const, rho, sigma = fit_ar(growth, growth_lag1, summary=False)
+
+    ar_mean, ar_rho, ar_std = get_uncond_moments_ar(const, rho, sigma)
+
+    # Calibrate 2-state chain
+    Z, P = rouwenhorst(n=2, mu=ar_mean, sigma=ar_std, rho=rho)  # state-vector and TPM
+    mc2_params = mc_params(Z, P)  # pi, mean, std, rho
+
+    # Calibrate 10-state chain
+    Z, P = rouwenhorst(n=10, mu=ar_mean, sigma=ar_std, rho=rho)  # state-vector and TPM
+    mc10_params = mc_params(Z, P)  # pi, mean, std, rho
+
+    # Check Mehra's data
+    Z, P = rouwenhorst(n=2, mu=1.018, sigma=0.036, rho=-.14)  # state-vector and TPM
+    mehra_params = mc_params(Z, P)  # pi, mean, std, rho
 
 
+
+    # Summarize results
+    summ = pd.DataFrame([[const, rho, sigma],
+                         [ar_mean, ar_rho, ar_std],
+                         mc2_params[1:],
+                         mc10_params[1:]],
+                        columns=['mean', 'rho', 'std'],
+                        index=['regression', 'ar_moments', "mc2", "mc10"])
+
+    print(summ)

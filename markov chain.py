@@ -9,17 +9,9 @@ Created on Wed Nov 24 15:31:54 2021
 import os
 import pandas as pd
 
-try:
-    # Change the current working Directory    
-    os.chdir("C:/Users/frede/OneDrive/Skrivebord/Kandidat/phd/Courses/Advanced Asset Pricing/Exercise")
-    print("Directory changed")
-except OSError:
-    print("Can't change the Current Working Directory")
-
-directory = os.getcwd()
 
 # import the dataset to excel:
-df = pd.read_csv (directory + "/" + 'PCE growth data.csv', index_col="Year").dropna()
+df = pd.read_excel("./" + 'PCE growth data.xlsx', index_col="Year").dropna()
 #df = df + 1
 
 import matplotlib.pyplot as plt
