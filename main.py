@@ -10,10 +10,14 @@ from utils import rouwenhorst
 
 pd.set_option('display.max_columns', 500)
 
-def get_data_growth_lags(path):
-    data = pd.read_excel(path, index_col="Year")
 
-    growth = data['Growth']
+def get_data_growth_lags(path, start_year=None):
+    data = pd.read_excel(path, index_col="year")
+
+    if not start_year is None:
+        data = data.loc[start_year:]
+
+    growth = data['growth']
     growth_lag1 = growth.shift(1).dropna()
     growth = growth.iloc[1:]
 
@@ -38,7 +42,7 @@ def get_uncond_moments_ar(const, rho, sigma):
 
     return ar_mean, ar_rho, ar_std
 
-def mc_params(Z, P):
+def get_mc_params(Z, P):
     # Compute unconditional probabilities (ergodic distribution):
     eig_val, eig_vec = np.linalg.eig(P.T)
     eig_vec = eig_vec[:, np.argmax(eig_val)]
@@ -50,10 +54,42 @@ def mc_params(Z, P):
 
     return pi_bar, mean, rho, std
 
+def run(n, path, start_year=None):
+    data, growth, growth_lag1 = get_data_growth_lags(path, start_year=start_year)
 
+    const, rho, sigma = fit_ar(growth, growth_lag1, summary=False)
+
+    ar_mean, ar_rho, ar_std = get_uncond_moments_ar(const, rho, sigma)
+
+    # Calibrate 2-state chain
+    Z, P = rouwenhorst(n=n, mu=ar_mean, sigma=ar_std, rho=rho)  # state-vector and TPM
+    mc_params = get_mc_params(Z, P)  # pi, mean, std, rho
+
+    # Summarize results
+    summ = pd.DataFrame([[const, rho, sigma],
+                         [ar_mean, ar_rho, ar_std],
+                         mc_params[1:]],
+                        columns=['mean', 'rho', 'std'],
+                        index=['regression', 'ar_moments', "mc"])
+
+    out = {'Z': Z,
+           'P': P,
+           'stationary dist': mc_params[0],
+           'mean': mc_params[1],
+           'std': mc_params[3],
+           'rho': mc_params[2]}
+
+    return out, summ
 
 if __name__ == '__main__':
-    path = "./PCE growth data.xlsx"
+    # Get data and fit an AR model
+    path_nipa = "./data/PCE growth data.xlsx"
+    path_mehra = "./data/Shiller data extended.xlsx"
+
+    run(n=2, path=path_nipa, start_year=1950)
+    run(n=10, path=path_mehra)
+
+    """
     data, growth, growth_lag1 = get_data_growth_lags(path)
 
     const, rho, sigma = fit_ar(growth, growth_lag1, summary=False)
@@ -62,15 +98,30 @@ if __name__ == '__main__':
 
     # Calibrate 2-state chain
     Z, P = rouwenhorst(n=2, mu=ar_mean, sigma=ar_std, rho=rho)  # state-vector and TPM
-    mc2_params = mc_params(Z, P)  # pi, mean, std, rho
+    mc2_params = get_mc_params(Z, P)  # pi, mean, std, rho
 
     # Calibrate 10-state chain
     Z, P = rouwenhorst(n=10, mu=ar_mean, sigma=ar_std, rho=rho)  # state-vector and TPM
-    mc10_params = mc_params(Z, P)  # pi, mean, std, rho
+    mc10_params = get_mc_params(Z, P)  # pi, mean, std, rho
 
     # Check Mehra's data
+
+    mehra_data = pd.read_csv("data/Shiller data extended.csv", index_col='Unnamed: 9')['C_growth'].dropna()
+    mehra_g = mehra_data.loc[1890:1978]
+    mehra_g1 = mehra_g.shift(1).dropna()
+    mehra_g = mehra_g.iloc[1:]
+
+    const_m, rho_m, sigma_m = fit_ar(mehra_g, mehra_g1, summary=True)
+
+    ar_mean_m, ar_rho_m, ar_std_m = get_uncond_moments_ar(const_m, rho_m, sigma_m)
+
+    # Calibrate 2-state chain
+    Z, P = rouwenhorst(n=2, mu=ar_mean_m, sigma=ar_std_m, rho=rho_m)  # state-vector and TPM
+    mc_mehra_params = get_mc_params(Z, P)  # pi, mean, std, rho
+
+
     Z, P = rouwenhorst(n=2, mu=1.018, sigma=0.036, rho=-.14)  # state-vector and TPM
-    mehra_params = mc_params(Z, P)  # pi, mean, std, rho
+    mehra_params = get_mc_params(Z, P)  # pi, mean, std, rho
 
 
 
@@ -83,3 +134,4 @@ if __name__ == '__main__':
                         index=['regression', 'ar_moments', "mc2", "mc10"])
 
     print(summ)
+    """
