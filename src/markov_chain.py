@@ -7,8 +7,8 @@ class MarkovChain:
     """
 
     def __init__(self, Pi, x):
-        self.Pi = Pi
-        self.x = x
+        self.Pi = Pi  # Transition matrix
+        self.x = x  # State values
         self.n_states = len(x)
 
         self.pi_bar = self.stationary_dist()
