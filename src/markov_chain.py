@@ -33,8 +33,9 @@ class MarkovChain:
 
     def __repr__(self):
         msg = "Markov chain with transition matrix \nPi = \n{0}"
-        msg = msg + "\nand stationary distribution \n{1}"
-        return msg.format(self.Pi, self.pi_bar)
+        msg = msg + "\n and state values = {1}"
+        msg = msg + "\nand stationary distribution = {2}"
+        return msg.format(self.Pi, self.x, self.pi_bar)
 
     def __str__(self):
         return str(self.__repr__)

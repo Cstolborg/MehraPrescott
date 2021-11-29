@@ -1,5 +1,8 @@
-# asset_pricing
-A repo for the PhD asset pricing course at CBS
+
+```
+pip install -r requirements.txt
+```
+
 
 
 ```python
@@ -11,10 +14,13 @@ from math import erfc, sqrt
 from scipy import stats
 import statsmodels.api as sm
 import scipy.optimize as opt
+import matplotlib.pyplot as plt
 import warnings
 
 from utils import rouwenhorst
-from main import run
+from src.mehra_economy import MehraEconomy
+from src.calibrate_mc_from_data import CalibrateMcChainFromData
+from src.markov_chain import MarkovChain
 
 warnings.filterwarnings('ignore')
 pd.set_option('display.max_columns', 500)
@@ -160,10 +166,6 @@ out.append(out1).round(4)
 
 Lower frequency data (annual) is more persistent than higher frequency data as can be seen by their AR(1) components. Since in the Mehra-Prescott model, $p=\frac{1+\rho}{2}$, then it follows that for $\rho$ close to zero, $p$ will be very close to $0.5$. Thus, for annual data, we can infer that $p>>0.5$ and thus persistence of a Markov Chain will be higher. As a result, all else equal, higher persistence decreases the equity premium in the Mehra-Prescott model. Thus, using the annual data, we expect to find a smaller premium than we would have for monthly data.
 
-## 3.a Reproduce Mehra-Prescott
-
-### Two-state Markov Chain
-
 
 ```python
 path_mehra = "./data/Shiller data extended.xlsx"
@@ -173,54 +175,18 @@ summ
 ```
 
 
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    /var/folders/p8/5fpcvc6s2c15g9s6dcp0fqbh0000gn/T/ipykernel_25700/4249535305.py in <module>
+          1 path_mehra = "./data/Shiller data extended.xlsx"
+    ----> 2 out, summ = run(n=2, path=path_mehra)
+          3 
+          4 summ
 
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>Mean</th>
-      <th>Rho</th>
-      <th>Std</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>AR coef</th>
-      <td>0.022761</td>
-      <td>-0.100142</td>
-      <td>0.039678</td>
-    </tr>
-    <tr>
-      <th>AR moments</th>
-      <td>1.020689</td>
-      <td>-0.100142</td>
-      <td>0.039878</td>
-    </tr>
-    <tr>
-      <th>Markov Chain</th>
-      <td>1.020689</td>
-      <td>-0.100142</td>
-      <td>0.039878</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
+    NameError: name 'run' is not defined
 
 
 ### 10-state Markov Chain
@@ -233,60 +199,20 @@ summ
 ```
 
 
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    /var/folders/p8/5fpcvc6s2c15g9s6dcp0fqbh0000gn/T/ipykernel_25700/880964018.py in <module>
+    ----> 1 out, summ = run(n=10, path=path_mehra)
+          2 
+          3 summ
 
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>Mean</th>
-      <th>Rho</th>
-      <th>Std</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>AR coef</th>
-      <td>0.022761</td>
-      <td>-0.100142</td>
-      <td>0.039678</td>
-    </tr>
-    <tr>
-      <th>AR moments</th>
-      <td>1.020689</td>
-      <td>-0.100142</td>
-      <td>0.039878</td>
-    </tr>
-    <tr>
-      <th>Markov Chain</th>
-      <td>1.020689</td>
-      <td>-0.091026</td>
-      <td>0.039878</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
+    NameError: name 'run' is not defined
 
 
 The 10-state chain appear to match the autocorrelation worse than the two-state, which is exact.
-
-## 3.B NIPA Data long sample
-### Two-state chain
 
 
 ```python
@@ -407,9 +333,6 @@ summ
 
 
 
-## 3.C NIPA data post-war
-### Two-state chain
-
 
 ```python
 _, summ = run(n=2, path=path_nipa, start_year=1950)
@@ -526,382 +449,202 @@ summ
 
 
 
-## 4.
-
-Unconditional moments are matched in 3.B
+## Calibrating a Markov Chain on annual data
 
 
 ```python
-# Calibrate chain from data
-out, summ = run(n=2, path=path_nipa)
-Z, P, pi, mu, sigma, rho = out['Z'], out['P'], out['stationary dist'], out['mean'], out['std'], out['rho']
-gamma = 2
+# Calibrate a Markov chain on an AR(1) process on yearly growth
+calibration = CalibrateMcChainFromData(df_annual)
+mc = calibration(summary=True)  # Call method returns calibrated MarkovChain
+```
+
+                                OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:                 growth   R-squared:                       0.223
+    Model:                            OLS   Adj. R-squared:                  0.214
+    Method:                 Least Squares   F-statistic:                     25.27
+    Date:                Mon, 29 Nov 2021   Prob (F-statistic):           2.60e-06
+    Time:                        14:44:15   Log-Likelihood:                 231.44
+    No. Observations:                  90   AIC:                            -458.9
+    Df Residuals:                      88   BIC:                            -453.9
+    Df Model:                           1                                         
+    Covariance Type:            nonrobust                                         
+    ==============================================================================
+                     coef    std err          t      P>|t|      [0.025      0.975]
+    ------------------------------------------------------------------------------
+    const          0.0093      0.003      3.555      0.001       0.004       0.015
+    growth         0.4795      0.095      5.027      0.000       0.290       0.669
+    ==============================================================================
+    Omnibus:                       32.934   Durbin-Watson:                   1.843
+    Prob(Omnibus):                  0.000   Jarque-Bera (JB):              125.252
+    Skew:                          -1.069   Prob(JB):                     6.34e-28
+    Kurtosis:                       8.370   Cond. No.                         48.4
+    ==============================================================================
+    
+    Warnings:
+    [1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+
+
+
+```python
+mc  # Resulting Markov Chain
+```
+
+
+
+
+    Markov chain with transition matrix 
+    Pi = 
+    [[0.73975015 0.26024985]
+     [0.26024985 0.73975015]]
+     and state values = [0.99657272 1.03919074]
+    and stationary distribution = [0.5 0.5]
+
+
+
+The unconditional mean of excess returns is practically zero. These findings do not confirm the empirically observed excess returns. It is puzzling that both risk-free returns and equity returns are both high at the same time. In the example, the risk-free rate is at 5\%, so in the data we should expect risk-free rates to be much higher. Thus, it is puzzling risk-free rates are so low empirically.
+
+## Characterizing the Mehra-Prescott Economy from the Markov Chain
+
+
+```python
+# Initialize economy object
 beta = np.exp(-0.02)
+gamma = 2.
+econ = MehraEconomy(mc, beta=beta, gamma=gamma)
+econ(beta, gamma)  # Run call method to generate asset prices and returns
 
-print("Conditional moments")
-cond_mu = P @ Z
-cond_std = np.sqrt((P @ Z**2) - cond_mu**2)
-
-
-pd.DataFrame({'mu': cond_mu,
-             'std': cond_std}, index=['Bad State', 'Good State'])
+econ.excess_ret_
 ```
 
-    Conditional moments
 
 
 
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>mu</th>
-      <th>std</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>Bad State</th>
-      <td>1.007664</td>
-      <td>0.0187</td>
-    </tr>
-    <tr>
-      <th>Good State</th>
-      <td>1.028099</td>
-      <td>0.0187</td>
-    </tr>
-  </tbody>
-</table>
-</div>
+    0.00010089558890696848
 
 
 
 
 ```python
-def bond_return(beta, Z=Z, P=P, n=1, gamma=2):
-    # Compute risk-free return from Markov Chain
-    B_i = np.zeros(2)
-    for i in range(2):
-        for j in range(2):
-            B_i[i] += beta * P[i, j] * Z[j]**(-gamma)
-            
-    Rf_i = 1/B_i - 1  # Net conditonal risk-free return
+[(key, econ.bonds.__dict__[key]) for key in econ.bonds.__dict__ if key in ['prices_', 'rets_', 'ret_']]
+```
+
+
+
+
+    [('prices_', array([0.96631663, 0.92829637])),
+     ('rets_', array([0.03485749, 0.07724217])),
+     ('ret_', 0.056049830814633106)]
+
+
+
+
+```python
+[(key, econ.stocks.__dict__[key]) for key in econ.stocks.__dict__ if key in ['prices_', 'rets_', 'ret_']]
+```
+
+
+
+
+    [('prices_', array([27.09263073, 26.10059777])),
+     ('rets_', array([0.03495448, 0.07734697])),
+     ('ret_', 0.056150726403540074)]
+
+
+
+Stock and bond returns are quite similar for these parameter values. Next we check if this is a general property of the model for many parameter combinations.
+
+## Numerical experiment
+
+In this section, we check the admissible region of excess returns for different pairs of ($\beta$, $\gamma$). Empirically, excess returns should be around 6\%, so we should expect the model to deliver such a return.
+
+
+```python
+plt.rcParams.update({'font.size': 15})
+
+def plot_economy(rf, re, ER, betas, gammas):
+    # Plotting
+    fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+    #plt.tight_layout()
+    fig.subplots_adjust(hspace=.4)
+
+    axs[0, 0].scatter(rf, ER)
+    axs[0, 1].scatter(betas, ER)
+    axs[1, 0].scatter(gammas, rf, color='b', label='Risk-free')
+    axs[1, 0].scatter(gammas, re, color='r', label='Stocks')
+    axs[1, 0].legend()
+
+    axs[1, 1].scatter(gammas, ER)
+
+    for ax, xlab, ylab in zip(axs.flatten(), ['Rf', r'$\beta$', r'$\gamma$', r'$\gamma$'],
+                              ['Excess Return', 'Excess Return', 'Return', 'Excess Return']):
+        ax.set_xlabel(xlab)
+        ax.set_title(ylab)
+
+    plt.show()
+```
+
+### Admissible region of excess returns for differing paris ($\beta$, $\gamma$)
+
+With the constraint that risk-free returns $\in (0, 0.04)$
+
+The data is not able to reconstruct the empirical data. No combination of $\beta$ and $\gamma$ is able to match observed excess returns. Finally, the results here are quite different from those in the Mehra-Prescott paper, but this is due to them having a negative annual autocorrelation, whereas ours is positive. For a replication of their results see the final section. 
+
+
+```python
+N = 100
+ER, rf, re, betas, gammas = econ.num_experiment(N=N)
+plot_economy(rf, re, ER, betas, gammas)
+```
+
+
     
-    B = pi @ Rf_i
-    return B
-
-# Solve for the beta that sets bond-return = 0.05 
-beta = opt.fsolve(lambda beta: bond_return(beta) - 0.05, x0=np.exp(-0.02))[0]
-
-beta
-```
-
-
-
-
-    0.9858463267717398
-
-
-
-
-```python
-def B2_cond_price(beta, Z=Z, P=P, n=1, gamma=2):
-    b = np.zeros(n)
+![png](main_files/main_26_0.png)
     
-    for i in range(2):
-        for j in range(2):
-            for k in range(2):
-                b[i] += P[i, j] * Z[j]**(-gamma) * P[j, k] * Z[k] **(-gamma)
-    return b * beta**n
-                
-B2 = B2_cond_price(beta, n=2)
-B2
-```
 
 
+### Repeating above experiment, without the constraint that Rf<0.04
 
-
-    array([0.9354742 , 0.88157146])
-
-
+From the plot, it is evident that equity returns are increasing in $\gamma$, however so is the risk-free rate, which is even increasing faster than equity returns. Thus resulting in a negative excess return.
 
 
 ```python
-def B1_cond_price(beta, Z=Z, P=P, n=1, gamma=2):
-    B1 = np.zeros(2)
-    for i in range(2):
-        for j in range(2):
-            B1[i] += beta * P[i, j] * Z[j]**(-gamma)
-    return B1
-
-B1 = B1_cond_price(beta)
-            
-B1
+ER, rf, re, betas, gammas = econ.num_experiment(N=N, rf_bound=(0.01, 0.22))
+plot_economy(rf, re, ER, betas, gammas)
 ```
 
 
-
-
-    array([0.9718843 , 0.93364498])
-
-
-
-
-```python
-h1 = np.zeros(2)
-for i in range(2):
-    h1[i] = (B1 / B2[i] * P[i, :]).sum() - 1
     
-print(f"Bond returns after 1 period: {h1}")
-print(f'Bond prices after 1 period: {1/(1+h1)}')
-
-pd.DataFrame({'B1': B1,
-             "B2": B2,
-             "Holding-return": h1}, index=['Bad State', 'Good State']).T
-```
-
-    Bond returns after 1 period: [0.02828332 0.07035764]
-    Bond prices after 1 period: [0.97249462 0.93426716]
+![png](main_files/main_28_0.png)
+    
 
 
+## Appendix: Replicating Mehra-Prescotts Figure 4
 
+To compare our results with the original ones, we here implement the model using the exact same numbers as used in the Mehra-Prescott paper. 
 
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>Bad State</th>
-      <th>Good State</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>B1</th>
-      <td>0.971884</td>
-      <td>0.933645</td>
-    </tr>
-    <tr>
-      <th>B2</th>
-      <td>0.935474</td>
-      <td>0.881571</td>
-    </tr>
-    <tr>
-      <th>Holding-return</th>
-      <td>0.028283</td>
-      <td>0.070358</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
-
-## Price-Dividend ratio in each state i
-
+Upper left corner corresponds to their original figure 4. Interestingly, with their parameters the excess returns are now increasing in $\gamma$ and not decreasing. This is because, as mentioned, now the autocorrelation is negative. Yet, the model is still unable to capture empirical excess returns.
 
 
 ```python
-def equity_price():
-    A = beta * Z**(1-gamma) * P
-    b = A.sum(axis=1)
+p = 0.43
+x = np.array([ 1 +0.018 - 0.036, 1+ 0.018 + 0.036])
+mc = MarkovChain(Pi=np.array([[p, 1 - p], [1 - p, p]]), x=x)
 
-    I = np.identity(2)
-    S = np.linalg.inv(I - A) @ b
-    return S
+# Initialize economy object
+econ = MehraEconomy(mc)
+econ.calibrate_beta_to_rf(target_rf=0.05)
 
-S = equity_price()
-S
+# Plot
+ER, rf, re, betas, gammas = econ.num_experiment(N=N)
+plot_economy(rf, re, ER, betas, gammas)
 ```
 
 
+    
+![png](main_files/main_30_0.png)
+    
 
-
-    array([32.18727579, 31.00294884])
-
-
-
-
-```python
-P_D = S / Z
-P_D
-```
-
-
-
-
-    array([32.29797004, 29.83374248])
-
-
-
-## Return on equity
-
-
-```python
-def return_equity():
-    re = np.zeros((2, 2))
-    for i in range(2):
-        for j in range(2):
-            re[j, i] = Z[j]*(S[j]+1)/S[i]-1
-    return re
-
-re = return_equity()
-re
-```
-
-
-
-
-    array([[0.02753442, 0.0667867 ],
-           [0.0332396 , 0.07270983]])
-
-
-
-
-```python
-# Excess returns
-rf = 1/B1 - 1  # 1-period risk-free rate
-
-excess_ret = (re.T - rf).T
-excess_ret
-```
-
-
-
-
-    array([[-0.00139465,  0.03785764],
-           [-0.03783134,  0.00163889]])
-
-
-
-## Unconditional moments of equity and bond returns
-
-
-```python
-def uncond_re(re):
-    cond_re = (P * re.T).sum(axis=1)
-    return pi @ cond_re
-
-re_uncond = uncond_re(re)
-
-uncond_rf = pi @ rf
-
-re_uncond
-```
-
-
-
-
-    0.05009376398854534
-
-
-
-
-```python
-cond_re = (P * re.T).sum(axis=1)
-cond_ER = cond_re - rf
-
-ER_mean = uncond_re(re) - pi @ rf
-std = np.sqrt( (pi @ cond_ER**2) - ER_mean**2)
-rho1 = np.diag(P)
-
-display(pd.DataFrame([ER_mean, std, rho1], index=['Mean', 'Std', 'Rho']).T)
-print("_"*40)
-```
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>Mean</th>
-      <th>Std</th>
-      <th>Rho</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>0.000094</td>
-      <td>0.000004</td>
-      <td>[0.7397501537169732, 0.7397501537169732]</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-
-    ________________________________________
-
-
-
-```python
-
-```
-
-
-```python
-
-```
-
-
-```python
-
-```
-
-
-```python
-
-```
-
-
-```python
-
-```
 
 
 ```python

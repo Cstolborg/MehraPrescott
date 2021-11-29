@@ -30,7 +30,6 @@ def plot_economy(rf, re, ER, betas, gammas):
 
 
 if __name__ == '__main__':
-
     # Read data and calibrate a Markov chain on an AR(1) process on yearly growth
     data = pd.read_excel("../data/PCE growth data.xlsx", index_col="year")
     calibration = CalibrateMcChainFromData(data)
@@ -52,15 +51,15 @@ if __name__ == '__main__':
     print('-' * 50)
     print("Excess return: ", econ.excess_ret())
 
+
+    # Plot admissible region of equity premiums for different pairs (beta, gamma)
+
     N = 100
-
-
-    ER, rf, re, betas, gammas = econ.num_experiment(N=N)
-
+    ER, rf, re, betas, gammas = econ.num_experiment(N=N, rf_bound=(0.01, 0.04))
     plot_economy(rf, re, ER, betas, gammas)
 
+    # Repeat procedure but less restriction on bounds of the risk-free rate
     ER, rf, re, betas, gammas = econ.num_experiment(N=N, rf_bound=(0.01, 0.22))
-
     plot_economy(rf, re, ER, betas, gammas)
 
 
