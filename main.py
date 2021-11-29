@@ -72,8 +72,8 @@ def run(n, path, start_year=None):
     summ = pd.DataFrame([[const, rho, sigma],
                          [ar_mean, ar_rho, ar_std],
                          mc_params[1:]],
-                        columns=['mean', 'rho', 'std'],
-                        index=['regression', 'ar_moments', "mc"])
+                        columns=['Mean', 'Rho', 'Std'],
+                        index=['AR coef', 'AR moments', "Markov Chain"])
 
     out = {'Z': Z,
            'P': P,
