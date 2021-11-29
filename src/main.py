@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from mehra_economy import MehraEconomy
-from calibrate_mc_from_data import CalibrateMcChainFromData
-from markov_chain import MarkovChain
+from src.mehra_economy import MehraEconomy
+from src.calibrate_mc_from_data import CalibrateMcChainFromData
+from src.markov_chain import MarkovChain
 
 plt.rcParams.update({'font.size': 15})
 

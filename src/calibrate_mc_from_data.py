@@ -5,7 +5,7 @@ import pandas as pd
 import statsmodels.api as sm
 
 from utils import rouwenhorst
-from markov_chain import MarkovChain
+from src.markov_chain import MarkovChain
 
 
 class CalibrateMcChainFromData:

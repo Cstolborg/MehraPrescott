@@ -3,8 +3,8 @@ import pandas as pd
 import scipy.optimize as opt
 import matplotlib.pyplot as plt
 
-from markov_chain import MarkovChain
-from calibrate_mc_from_data import CalibrateMcChainFromData
+from src.markov_chain import MarkovChain
+from src.calibrate_mc_from_data import CalibrateMcChainFromData
 
 class MehraEconomy:
     """
