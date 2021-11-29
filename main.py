@@ -23,7 +23,10 @@ def get_data_growth_lags(path, start_year=None):
 
     return data, growth, growth_lag1
 
-def fit_ar(x, x_lagged, summary=False):
+def fit_ar(x, x_lagged, components=1, summary=False):
+    if not components == 1:
+        x_lagged2 = x_lagged.shift(1).dropna()
+
     X = sm.add_constant(x_lagged)
     model = sm.OLS(x, X)
     res = model.fit()
