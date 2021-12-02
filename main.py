@@ -53,7 +53,10 @@ def get_mc_params(Z, P):
 
     mean = pi_bar @ Z
     std = np.sqrt(pi_bar @ Z ** 2 - (pi_bar @ Z) ** 2)
-    rho = np.trace(P) - 1
+
+    l = pi_bar * Z
+    s = P @ Z
+    rho = (l @ s - mean**2) / std ** 2
 
     return pi_bar, mean, rho, std
 

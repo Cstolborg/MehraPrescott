@@ -27,7 +27,12 @@ class MarkovChain:
 
         mean = self.pi_bar @ self.x
         std = np.sqrt(self.pi_bar @ self.x ** 2 - (self.pi_bar @ self.x) ** 2)
-        rho = np.trace(self.Pi) - 1
+        #rho = np.trace(self.Pi) - 1
+
+        l = self.pi_bar * self.x
+        s = self.Pi * self.x
+
+        rho = l * s - mean** 2 / std**2
 
         return mean, rho, std
 
