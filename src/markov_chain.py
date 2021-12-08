@@ -27,19 +27,18 @@ class MarkovChain:
 
         mean = self.pi_bar @ self.x
         std = np.sqrt(self.pi_bar @ self.x ** 2 - (self.pi_bar @ self.x) ** 2)
-        #rho = np.trace(self.Pi) - 1
 
         l = self.pi_bar * self.x
-        s = self.Pi * self.x
-
-        rho = l * s - mean** 2 / std**2
+        s = self.Pi @ self.x
+        rho = (l @ s - mean ** 2) / std ** 2
 
         return mean, rho, std
 
     def __repr__(self):
         msg = "Markov chain with transition matrix \nPi = \n{0}"
-        msg = msg + "\nand stationary distribution \n{1}"
-        return msg.format(self.Pi, self.pi_bar)
+        msg = msg + "\n and state values = {1}"
+        msg = msg + "\nand stationary distribution = {2}"
+        return msg.format(self.Pi, self.x, self.pi_bar)
 
     def __str__(self):
         return str(self.__repr__)

@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 from src.mehra_economy import MehraEconomy
 from src.calibrate_mc_from_data import CalibrateMcChainFromData
@@ -30,17 +31,18 @@ def plot_economy(rf, re, ER, betas, gammas):
 
 
 if __name__ == '__main__':
+    method = "NIPA"
+    if method == "NIPA":
+        # Read data and calibrate a Markov chain on an AR(1) process on yearly growth
+        data = pd.read_excel("../data/PCE growth data.xlsx", index_col="year")
+        calibration = CalibrateMcChainFromData(data, n_states=10)
+        mc = calibration()  # Call method returns a MarkovChain
+    elif method == "MehraMarkovChain":
+        p = 0.43
+        x = np.array([ 1 +0.018 - 0.036, 1+ 0.018 + 0.036])
+        mc = MarkovChain(Pi=np.array([[p, 1 - p], [1 - p, p]]), x=x)
 
-    # Read data and calibrate a Markov chain on an AR(1) process on yearly growth
-    data = pd.read_excel("../data/PCE growth data.xlsx", index_col="year")
-    calibration = CalibrateMcChainFromData(data)
-    mc = calibration()  # Call method returns a MarkovChain
-
-    #p = 0.43
-    #x = np.array([ 1 +0.018 - 0.036, 1+ 0.018 + 0.036])
-    #mc = MarkovChain(Pi=np.array([[p, 1 - p], [1 - p, p]]), x=x)
-
-    # Initialize economy object
+    # Initialize economy object from Markov Chain
     econ = MehraEconomy(mc)
     econ.calibrate_beta_to_rf(target_rf=0.05)
 
@@ -52,27 +54,12 @@ if __name__ == '__main__':
     print('-' * 50)
     print("Excess return: ", econ.excess_ret())
 
+
+    # Plot admissible region of equity premiums for different pairs (beta, gamma)
     N = 100
-
-
-    ER, rf, re, betas, gammas = econ.num_experiment(N=N)
-
+    ER, rf, re, betas, gammas = econ.num_experiment(N=N, rf_bound=(0.01, 0.04))
     plot_economy(rf, re, ER, betas, gammas)
 
+    # Repeat procedure but less restriction on bounds of the risk-free rate
     ER, rf, re, betas, gammas = econ.num_experiment(N=N, rf_bound=(0.01, 0.22))
-
     plot_economy(rf, re, ER, betas, gammas)
-
-
-
-
-
-
-
-    df = pd.DataFrame({'excess_ret': ER,
-                       'Rf': rf,
-                       'Re': re,
-                       'beta': betas,
-                       'gamma': gammas}).set_index('gamma')
-
-    #df.plot.scatter(x='Rf', y='excess_ret')

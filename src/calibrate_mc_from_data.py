@@ -24,11 +24,12 @@ class CalibrateMcChainFromData:
         self.g = self.data['growth'].iloc[1:]
         self.g1 = self.data['growth'].shift(1).dropna()
 
-        self.ar_result, self.ar_summary = self.fit_ar(self.g, self.g1)
-
+    def __call__(self, summary=False):
+        # Fit AR(1) model and compute unconditional moments
+        self.ar_result, self.ar_summary = self.fit_ar(self.g, self.g1, summary=summary)
         self.mu, self.rho, self.sigma = self.get_uncond_moments_ar()
 
-    def __call__(self, *args, **kwargs):
+        # Apply rouwenhorst method to calibrate Markov Chain from AR(1) moments
         x, Pi = rouwenhorst(n=self.n_states, mu=self.mu, sigma=self.sigma, rho=self.rho)  # state-vector and TPM
         return MarkovChain(Pi, x)
 
