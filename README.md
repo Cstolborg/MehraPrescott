@@ -7,6 +7,9 @@ in main.ipynb.
 
 To get started simply run
 ```
-pip install -r requirements.txt
+pip install -e .
 ```
 
+from the main directory.
+
+Analyses are in the notebook files main_analysis.ipynb and a shorter more concise version is in oop_short_analysis.ipynb

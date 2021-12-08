@@ -3,7 +3,7 @@ import scipy.optimize as opt
 
 from src.markov_chain import MarkovChain
 
-class MehraEconomy:
+class MehraModel:
     """
     Class for computing asset prices in the Lucas Tree Economy
     used by Mehra and Prescott (1985). From a Markov Chain, parameters for

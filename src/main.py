@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from src.mehra_economy import MehraEconomy
+from src.mehra_economy import MehraModel
 from src.calibrate_mc_from_data import CalibrateMcChainFromData
 from src.markov_chain import MarkovChain
 
@@ -43,23 +43,23 @@ if __name__ == '__main__':
         mc = MarkovChain(Pi=np.array([[p, 1 - p], [1 - p, p]]), x=x)
 
     # Initialize economy object from Markov Chain
-    econ = MehraEconomy(mc)
-    econ.calibrate_beta_to_rf(target_rf=0.05)
+    model = MehraModel(mc)
+    model.calibrate_beta_to_rf(target_rf=0.05)
 
-    print("Equity prices = ", econ.stocks.prices_)
-    print("Equity realized returns: \n", econ.stocks.realized_rets_)
-    print("Equity conditional returns: \n", econ.stocks.rets_)
-    print("Equity unconditional returns: \n", econ.stocks.ret_)
+    print("Equity prices = ", model.stocks.prices_)
+    print("Equity realized returns: \n", model.stocks.realized_rets_)
+    print("Equity conditional returns: \n", model.stocks.rets_)
+    print("Equity unconditional returns: \n", model.stocks.ret_)
 
     print('-' * 50)
-    print("Excess return: ", econ.excess_ret())
+    print("Excess return: ", model.excess_ret())
 
 
     # Plot admissible region of equity premiums for different pairs (beta, gamma)
     N = 100
-    ER, rf, re, betas, gammas = econ.num_experiment(N=N, rf_bound=(0.01, 0.04))
+    ER, rf, re, betas, gammas = model.num_experiment(N=N, rf_bound=(0.01, 0.04))
     plot_economy(rf, re, ER, betas, gammas)
 
     # Repeat procedure but less restriction on bounds of the risk-free rate
-    ER, rf, re, betas, gammas = econ.num_experiment(N=N, rf_bound=(0.01, 0.22))
+    ER, rf, re, betas, gammas = model.num_experiment(N=N, rf_bound=(0.01, 0.22))
     plot_economy(rf, re, ER, betas, gammas)

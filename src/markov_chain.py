@@ -12,7 +12,7 @@ class MarkovChain:
         self.n_states = len(x)
 
         self.pi_bar = self.stationary_dist()
-        self.mu, self.rho, self.std = self.uncond_moements()
+        self.mu, self.rho, self.std = self.uncond_moments()
 
     def stationary_dist(self):
         # Compute unconditional probabilities (ergodic distribution):
@@ -21,7 +21,7 @@ class MarkovChain:
         pi_bar = eig_vec / eig_vec.sum()
         return pi_bar
 
-    def uncond_moements(self):
+    def uncond_moments(self):
         if not hasattr(self, 'pi_bar'):  # Check pi_bar is computed
             self.stationary_dist()
 
