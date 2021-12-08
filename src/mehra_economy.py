@@ -1,15 +1,13 @@
 import numpy as np
-import pandas as pd
 import scipy.optimize as opt
-import matplotlib.pyplot as plt
 
 from src.markov_chain import MarkovChain
-from src.calibrate_mc_from_data import CalibrateMcChainFromData
 
 class MehraEconomy:
     """
     Class for computing asset prices in the Lucas Tree Economy
-    used by Mehra and Prescott (1985)
+    used by Mehra and Prescott (1985). From a Markov Chain, parameters for
+    beta and gamma, it computes bond and stocks prices and excess returns.
     """
 
     def __init__(self, mc: MarkovChain, beta=np.exp(-0.02), gamma=2):
@@ -26,7 +24,7 @@ class MehraEconomy:
         self.stocks(beta, gamma)
 
     def __call__(self, beta, gamma):
-        # Init bonds and equity prices - notice difference between self for MC and local variables for beta+gamma
+        """ Compute bonds and equity prices"""
         self.bonds = MehraBonds(self.mc, beta=beta, gamma=gamma)
         self.stocks = MehraStocks(self.mc, beta=beta, gamma=gamma)
 
@@ -67,8 +65,7 @@ class MehraEconomy:
         ER = []
         for beta in betas1:
             for gamma in gammas1:
-                #self.calibrate_beta_to_rf(target_rf=r)
-                self(beta, gamma)
+                self(beta, gamma)  # Call method
                 if not rf_lower< self.bonds.ret_ <= rf_upper:
                     continue
                 self.gamma = gamma
@@ -145,7 +142,7 @@ class MehraStocks:
         A = self.beta * self.x**(1-self.gamma) * self.Pi
         b = A.sum(axis=1)
 
-        I = np.identity(2)
+        I = np.identity(self.n_states)
         S = np.linalg.inv(I - A) @ b
 
         self.prices_ = S
@@ -153,10 +150,10 @@ class MehraStocks:
 
     def realized_rets(self):
         """ Realized returns when going from state i to j - outputs an (n_states x n_states) array """
-        re = np.zeros((2, 2))
+        re = np.zeros((self.n_states, self.n_states))
         S = self.prices()
-        for i in range(2):
-            for j in range(2):
+        for i in range(self.n_states):
+            for j in range(self.n_states):
                 re[i, j] = self.x[j] * (S[j] + 1) / S[i] - 1
 
         self.realized_rets_ = re
